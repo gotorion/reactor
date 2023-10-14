@@ -1,4 +1,5 @@
 #include "SockIO.h"
+
 #include <errno.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -6,9 +7,7 @@
 
 SockIO::SockIO(int fd) : _fd(fd) {}
 
-SockIO::~SockIO() {
-  close(_fd);
-}
+SockIO::~SockIO() { close(_fd); }
 
 int SockIO::readn(char *buf, int len) {
   int left = len;
@@ -22,7 +21,7 @@ int SockIO::readn(char *buf, int len) {
     if (-1 == ret) {
       ::perror("recv in readn");
       return 0;
-    } else if (0 == ret) { // no data
+    } else if (0 == ret) {  // no data
       break;
     } else {
       pstr += ret;
@@ -49,18 +48,21 @@ int SockIO::readLine(char *buf, int len) {
     } else {
       for (int i = 0; i < ret; ++i) {
         if (pstr[i] == '\n') {
-          ::recv(_fd, pstr, i + 1, MSG_WAITALL);
-          pstr[i] = '\0';
-          return i + 1;
+          int sz = i + 1;
+          readn(pstr, sz);
+          pstr += sz;
+          *pstr = '\0';
+          return total + sz;
         }
       }
-      ::recv(_fd, pstr, ret, MSG_WAITALL);
+      readn(pstr, ret);
       total += ret;
       left -= ret;
+      pstr += ret;
     }
   }
-  pstr[total] = '\0';
-  return total;
+  *pstr = '\0';
+  return total - left;
 }
 
 int SockIO::writen(const char *buf, int len) {

@@ -1,9 +1,10 @@
 #include "Acceptor.h"
 
 #include <asm-generic/socket.h>
-#include <cstdio>
 #include <netinet/in.h>
 #include <sys/socket.h>
+
+#include <cstdio>
 
 Acceptor::Acceptor(const string &ip, unsigned short port)
     : _listenSock(), _addr(ip, port) {}
@@ -58,3 +59,5 @@ int Acceptor::accept() {
   }
   return fd;
 }
+
+int Acceptor::fd() const { return _listenSock.fd(); }

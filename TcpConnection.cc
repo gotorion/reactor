@@ -1,11 +1,18 @@
 #include "TcpConnection.h"
-#include <sstream>
+
 #include <sys/socket.h>
+
+#include <sstream>
 using std::ostringstream;
 
 TcpConnection::TcpConnection(int fd)
-    : _sock(fd), _sockIO(fd), _localAddr(getLocalAddr()),
-      _peerAddr(getPeerAddr()) {}
+    : _sock(fd),
+      _sockIO(fd),
+      _localAddr(getLocalAddr()),
+      _peerAddr(getPeerAddr()),
+      _onConnect(nullptr),
+      _onMessage(nullptr),
+      _onClose(nullptr) {}
 
 TcpConnection::~TcpConnection() {}
 
@@ -17,6 +24,38 @@ string TcpConnection::receive() {
   char buf[4096];
   _sockIO.readLine(buf, sizeof(buf));
   return static_cast<string>(buf);
+}
+
+bool TcpConnection::isExit() {
+  char buf[10] = {0};
+  int ret = ::recv(_sock.fd(), buf, sizeof(buf), MSG_PEEK);
+  return ret == 0;
+}
+
+void TcpConnection::setConnect(const TcpCallback &cb) { _onConnect = cb; }
+
+void TcpConnection::setMessage(const TcpCallback &cb) { _onMessage = cb; }
+
+void TcpConnection::setClose(const TcpCallback &cb) { _onClose = cb; }
+
+void TcpConnection::handleConnectCallback() {
+  if (_onConnect) {
+    _onConnect(shared_from_this());
+  } else {
+    ::printf("_onConnect is nullptr\n");
+  }
+}
+
+void TcpConnection::handleMessageCallback() {
+  if (_onMessage) {
+    _onMessage(shared_from_this());
+  }
+}
+
+void TcpConnection::handleCloseCallback() {
+  if (_onClose) {
+    _onClose(shared_from_this());
+  }
 }
 
 string TcpConnection::toString() {
@@ -34,7 +73,7 @@ InetAddress TcpConnection::getLocalAddr() {
     ::perror("getsockname");
     exit(-1);
   }
-  return InetAddress(addr); // construct a tmp InetAddress
+  return InetAddress(addr);  // construct a tmp InetAddress
 }
 
 InetAddress TcpConnection::getPeerAddr() {
@@ -45,5 +84,5 @@ InetAddress TcpConnection::getPeerAddr() {
     ::perror("getpeername");
     exit(-1);
   }
-  return InetAddress(addr); // construct a tmp InetAddress
+  return InetAddress(addr);  // construct a tmp InetAddress
 }
