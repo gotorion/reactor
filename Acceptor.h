@@ -10,6 +10,7 @@ class Acceptor {
   ~Acceptor();
   void getReady();
   int accept();
+  int fd() const;
  private:
   void setReuseAddr();
   void setReusePort();
